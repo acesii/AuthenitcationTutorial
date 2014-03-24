@@ -82,6 +82,13 @@
 	</head>
 	<body>
 		<a href="#page-body" class="skip"><g:message code="default.link.skip.label" default="Skip to content&hellip;"/></a>
+    <sec:ifLoggedIn>
+      Hello <sec:loggedInUser/> : <g:link controller="logout" action="index">Logout</g:link>
+    </sec:ifLoggedIn>
+    <sec:ifNotLoggedIn>
+      not logged in
+    </sec:ifNotLoggedIn>
+
 		<div id="status" role="complementary">
 			<h1>Application Status</h1>
 			<ul>
