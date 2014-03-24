@@ -1,0 +1,114 @@
+0. We need to have emails for registration to work
+	apt-get install postfix mailutils
+		- Set "Local Only"
+
+1. Create app
+	grails create-app BasicAuthExample
+
+2. Edit grails-app/conf/Build-Config.groovy and add
+        add 
+		mavenRepo "http://repo.spring.io/milestone/"  
+	to the repositories section
+
+        add
+		compile ":spring-security-core:2.0-RC2"
+        	compile ":spring-security-ui:1.0-RC1"
+	to the compile section - Actually you don't need ui for basic auth
+
+        run 
+		grails compile
+        to install the plugins
+
+3. initialise the auth module, create domain classes for users, roles and other needed domains
+	Run
+		grails s2-quickstart uk.ac.shu.webarch User Role
+
+
+4. Create an example controller to protect
+
+	Grails now secures every URL by default unless you explicitly allow anonymous access
+	grails create-controller Home
+        set up a page
+        In the controller, use an annotation to describe how the index action is secured
+
+	package basicauthexample
+
+	import grails.plugin.springsecurity.annotation.Secured
+
+	class HomeController {
+
+	    @Secured(['ROLE_USER', 'IS_AUTHENTICATED_FULLY'])
+	    def index() { }
+	}
+
+
+
+5. Relax the password constraints by adding this to Config.groovy
+
+	grails.plugin.springsecurity.ui.password.minLength = 6
+	grails.plugin.springsecurity.ui.password.maxLength = 64
+	grails.plugin.springsecurity.ui.password.validationRegex = '^.*$'
+
+6. Set the from email address, and default roles in Config.groovy
+
+	grails.plugin.springsecurity.securityConfigType = "Annotation"
+	grails.plugin.springsecurity.logout.postOnly = false
+	grails.plugin.springsecurity.ui.register.emailFrom = "demo<no-reply@localhost.localdomain>"
+	grails.plugin.springsecurity.ui.register.emailSubject = 'Welcome to demoapp'
+	grails.plugin.springsecurity.ui.register.defaultRoleNames = [
+	        "ROLE_USER"
+	]
+
+7. Ask the app to use basic rather than form authentication in Config.groovy (omit this to do form login)
+
+// The following 2 entries make the app use basic auth by default
+grails.plugin.springsecurity.useBasicAuth = true
+grails.plugin.springsecurity.basic.realmName = "demo"
+
+
+8. Make sure that the register page is not password protected by adding the following two lines to the grails.plugin.springsecurity.controllerAnnotations.staticRules setting
+	'/register':                      ['permitAll'],
+        '/register/**':                   ['permitAll'],
+
+9. Maybe set up a default admin account and create some roles in Bootstrap
+
+      // Global System Roles
+      def userRole = Role.findByAuthority('ROLE_USER') ?: new Role(authority: 'ROLE_USER').save(failOnError: true)
+      def editorRole = Role.findByAuthority('ROLE_EDITOR') ?: new Role(authority: 'ROLE_EDITOR').save(failOnError: true)
+      def adminRole = Role.findByAuthority('ROLE_ADMIN') ?: new Role(authority: 'ROLE_ADMIN').save(failOnError: true)
+
+      log.debug("Create admin user...");
+      def adminUser = User.findByUsername('admin')
+      if ( ! adminUser ) {
+        log.error("No admin user found, create");
+        adminUser = new User(
+                          username: 'admin',
+                          password: 'admin',
+                          display: 'Admin',
+                          email: 'admin@localhost.localdomain',
+                          enabled: true).save(failOnError: true)
+      }
+
+      if (!adminUser.authorities.contains(adminRole)) {
+        log.debug("Granting admin user admin role");
+        UserRole.create adminUser, adminRole
+      }
+
+      if (!adminUser.authorities.contains(userRole)) {
+        log.debug("Granting admin user user role");
+        UserRole.create adminUser, userRole
+      }
+
+
+
+
+
+
+10. Grails run-app
+	Select register
+	Signup with email address student@localhost.localdomain
+	At command prompt run "mail", hit enter, get the URL and paste into browser
+	
+
+
+
